@@ -1,0 +1,57 @@
+import { products as baseProducts } from '../api/products';
+
+const nameSuffixes = [
+  ' Pro', ' X', ' Max', ' Ultra', ' Lite', ' 2025', ' Gen2', ' Plus', ' Advance'
+];
+
+// Helper to slightly vary price (±10% approx)
+function varyPrice(price, id) {
+  const variance = 0.1; // 10%
+  const factor = 1 + ((id % 5) - 2) * variance * 0.5; // varies ~0.9 to ~1.1
+  return Math.round(price * factor);
+}
+
+// Simple shuffle helper: Fisher-Yates algorithm
+function shuffleArray(arr) {
+  const array = arr.slice();
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor((Math.random() * (i + 1)));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+export function getInfiniteProducts(count = 20) {
+  const infinite = [];
+  let id = 1;
+
+  while (infinite.length < count) {
+    const round = Math.floor((id - 1) / baseProducts.length);
+    // Shuffle products differently every round to vary order
+    let productsThisRound = baseProducts;
+    if (round > 0) productsThisRound = shuffleArray(baseProducts);
+
+    for (let i = 0; i < productsThisRound.length; i++) {
+      const prod = productsThisRound[i];
+      const suffix = round > 0 ? nameSuffixes[round % nameSuffixes.length] : '';
+      const newName = prod.name + suffix;
+
+      // Rotate image index each round to change image order
+      const imageIndex = (i + round) % baseProducts.length;
+      const newImage = baseProducts[imageIndex].image;
+
+      infinite.push({
+        ...prod,
+        id,
+        name: newName,
+        price: varyPrice(prod.price, id),
+        variant: `Variant ${round + 1}`,
+        image: newImage,
+      });
+
+      id++;
+      if (infinite.length === count) break;
+    }
+  }
+  return infinite;
+}
